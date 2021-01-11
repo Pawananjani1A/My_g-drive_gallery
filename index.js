@@ -414,7 +414,7 @@ app.get('/archived', (req, res) => {
             if (ArchivedImages) {
 
                 res.render('archived', { files: ArchivedImages, success: true });
-                console.log(ArchivedImages);
+                // console.log(ArchivedImages);
             } else res.render('archived', { files: ArchivedImages, success: false });
         } else {
             res.redirect('/');
