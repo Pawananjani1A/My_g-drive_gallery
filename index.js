@@ -523,3 +523,29 @@ app.post('/file/delete/:id', (req, res) => {
         res.redirect('/');
     }
 });
+
+app.get('/logout', (req, res) => {
+    authed = false;
+    TOKEN = null;
+    MyImages = [];
+    ArchivedImages = [];
+    DeletedImages = [];
+    HiddenImages = [];
+    res.redirect('/');
+});
+
+app.get('/error', (req, res) => {
+    res.render('error');
+});
+
+
+// Logging
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+}
+
+const PORT = process.env.PORT || 3000;
+app.listen(
+    PORT,
+    console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+);
