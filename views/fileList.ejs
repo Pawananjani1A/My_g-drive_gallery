@@ -1,0 +1,98 @@
+<%- include('partials/header') %>
+
+<a class="item" href="/upload">
+    Upload
+</a>
+<a class="item active" href="/fileList">
+    Photos
+</a>
+<a class="item" href="/archived">
+    Archived Images
+</a>
+
+<a class="item" href="/hidden">
+    Hidden Images
+</a>
+
+<a class="item" href="/deleted">
+    Deleted Images
+</a>
+<div class="right menu">
+    <div class="item">
+        <a href="/logout" class="large ui google plus button">
+            <i class="google plus icon"></i>
+            Signout
+        </a>
+    </div>
+</div>
+</div>
+
+    <div class="ui container" style="margin-top: 10px;">
+
+        <div class="ui segment">
+            <form action="/fileList" method="POST">
+                <div class="form-group">
+                    <button class="btn btn-block btn-danger">
+                        <% if ( success) { %>
+                            Click Here to see Files
+                            <% } else{%>
+                                Load Files
+                                <% } %>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="image-list">
+           
+              
+                
+                    
+
+
+                    <% if (success && files) { %>
+                        <div class="alert alert-success alert-dismissible">
+                            <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+                            <strong>Success!</strong> Here are your images.     
+                         </div>
+
+                       
+                            <% if ( files.length===0) { %>
+                                <h3 style="color: red;">0 files found</h3>
+                                <% } else{%>
+                        
+                                   <% for( let index = 0; index < files.length; index++ ) {%>
+                                      <div style="grid-row-end: span <%=files[index].imageMediaMetadata.height/10 %>">
+                                        <a href="<%= files[index].webViewLink %>" target="blank">
+                                            <iframe src="https://drive.google.com/file/d/<%=files[index].id%>/preview" alt="mi-pic"></iframe>
+                                        </a>
+                                        <div class="ui buttons">
+                                            <form class="right aligned content" action="/file/archive/<%=files[index].id%>" method="POST">
+                                                <button class="large ui teal button" type="submit">Archive</button>
+                                            </form>
+                                            <form class="right aligned content" action="/file/delete/<%=files[index].id%>" method="POST">
+                                                <button class="large ui red button" type="submit" >Delete</button>
+                                            </form>
+                                            <form class="right aligned content" action="/file/hide/<%=files[index].id%>" method="POST">
+                                                <button class="large ui primary button" type="submit">Hide</button>
+                                            </form>
+                                        </div>
+                
+                                    </div>
+            
+                                   <% } %>
+                        
+                                    <% } %>
+                        
+                        <%}%>
+
+                            
+            
+        </div>
+    </div>
+
+
+
+    <%- include('partials/footer') %>
+
+    <!-- <iframe src="https://drive.google.com/file/d/17wjvM7mZEcHSc0oqA75qsuzDwXMfFISo/preview" width="640" height="480"></iframe> -->
