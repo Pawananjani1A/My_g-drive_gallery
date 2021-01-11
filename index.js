@@ -305,3 +305,101 @@ app.get('/google/callback', function(req, res) {
         res.redirect('/error');
     }
 });
+
+app.get('/fileList', (req, res) => {
+    if (authed) {
+        if (MyImages) {
+            // console.log(MyImages);
+            res.render('fileList', { name: name, pic: pic, files: MyImages, success: true })
+        } else res.render('fileList', { name: name, pic: pic, files: MyImages, success: false })
+    } else {
+        res.redirect('/');
+    }
+});
+
+
+
+
+app.get('/upload', (req, res) => {
+    if (req.isAuthenticated()) {
+        //  console.log(userProfile);
+        res.render('upload', { name: name, pic: pic, success: false });
+    } else {
+        res.redirect('/');
+    }
+});
+
+
+
+app.post('/fileList', (req, res) => {
+
+    if (authed) {
+        if (TOKEN) {
+
+            oAuth2Client.setCredentials(TOKEN);
+
+            listFiles(oAuth2Client, My_Images, flag = "MI");
+            // console.log(MyImages);
+            res.redirect('/fileList');
+        } else res.redirect('/');
+    } else {
+        res.redirect('/');
+    }
+});
+
+
+
+app.post('/upload', (req, res) => {
+    if (authed) {
+
+        // console.log(req.user);
+        upload(req, res, function(err) {
+            if (err) {
+                console.log(err);
+                res.redirect('/error');
+            } else {
+                // console.log("File Path : ",req.file.path);
+                const ftype = req.file.mimetype;
+                if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
+                    const drive = google.drive({ version: "v3", auth: oAuth2Client });
+                    const fileMetadata = {
+                        'name': req.file.filename,
+                        'parents': ['1hyyibn8SOArYxLNcEn-8tsA8quABrd12'],
+                        'appProperties': {
+                            'hidden': false,
+                            'archived': false,
+                            'bin': false,
+                            'myImages': true,
+                            'origin': email
+                        }
+                    };
+                    const media = {
+                        mimeType: req.file.mimetype,
+                        body: fs.createReadStream(req.file.path),
+                    };
+                    drive.files.create({
+                            resource: fileMetadata,
+                            media: media,
+                            fields: "id",
+                        },
+                        (err, file) => {
+                            if (err) {
+                                // Handle error
+                                console.error(err);
+                            } else {
+                                fs.unlinkSync(req.file.path)
+                                    // console.log(req.user);
+                                res.render("upload", { name: name, pic: pic, success: true })
+                            }
+                        });
+                } else {
+                    console.log("User Didn't select an image file");
+                    res.redirect("/error");
+                }
+            }
+
+
+        });
+    } else { res.redirect('/'); }
+
+});
