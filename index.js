@@ -34,6 +34,123 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapi
 
 
 
+//////////////////////////////////////////////API DOCS/////////////////////////////////////////////
+
+function authorize(credentials, callback) {
+    var client_secret = credentials.web.client_secret;
+    var client_id = credentials.web.client_id;
+    var redirect_uris = credentials.web.redirect_uris[0];
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
+
+    // Check if we have previously stored a token.
+    fs.readFile(TOKEN_PATH, (err, token) => {
+        if (err) {
+            console.log("Error Reading Token : ", err);
+            return false;
+        }
+        oAuth2Client.setCredentials(JSON.parse(token));
+        callback(oAuth2Client); //list files and upload file
+        //callback(oAuth2Client, '0B79LZPgLDaqESF9HV2V3YzYySkE');//get file
+        return true;
+    });
+
+}
+
+var MyImages = [];
+var ArchivedImages = [];
+var HiddenImages = [];
+var DeletedImages = [];
+
+function listFiles(auth, folderId, flag) {
+    const drive = google.drive({ version: 'v3', auth });
+    getList(drive, '', folderId, flag);
+
+}
+
+async function getList(drive, pageToken, folderId, flag) {
+    await drive.files.list({
+        corpora: 'user',
+        pageSize: 10,
+        q: `'${folderId}' in parents and trashed=false`,
+        pageToken: pageToken ? pageToken : '',
+        fields: 'nextPageToken, files(*)',
+    }, (err, res) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        const files = res.data.files;
+        if (files.length) {
+            console.log('Files:');
+            processList(files, flag);
+            if (res.data.nextPageToken) {
+                getList(drive, res.data.nextPageToken, folderId, flag);
+            }
+
+            files.map((file) => {
+                // console.log(`${file.name} (${file.id})`);
+            });
+        } else {
+            console.log('No files found.');
+        }
+    });
+}
+
+function processList(files, flag) {
+    console.log('Processing....');
+    let mySet = new Set();
+    files.forEach(file => {
+        mySet.add(file);
+        // console.log(file.name + '|' + file.size + '|' + file.createdTime + '|' + file.modifiedTime);
+        // console.log(file);
+    });
+    // console.log("Should Be empty : ",storage);
+    console.log(flag);
+    if (flag == "MI") MyImages = Array.from(mySet);
+    else if (flag == "AI") ArchivedImages = Array.from(mySet);
+    else if (flag == "HI") HiddenImages = Array.from(mySet);
+    else if (flag == "DI") DeletedImages = Array.from(mySet);
+    // console.log("Should have appropriate content : ",storage);
+}
+
+function moveFileToNewFolder(fileId, newFolderId, auth) {
+    const drive = google.drive({ version: 'v3', auth });
+    try {
+        // Retrieve the existing parents to remove
+
+        drive.files.get({
+            fileId: fileId,
+            fields: 'parents'
+        }, function(err, file) {
+            if (err) {
+                // Handle error
+                console.log("File Not found ", err);
+            } else {
+                // Move the file to the new folder
+                //   console.log("File : ",file);
+                var previousParents = file.data.parents.join(',');
+                drive.files.update({
+                    fileId: fileId,
+                    addParents: newFolderId,
+                    removeParents: previousParents,
+                    fields: 'id, parents'
+                }, function(err, file) {
+                    if (err) {
+                        // Handle error
+                        console.log(`Couldn't Move file ${file.id} to the new folder : `, err);
+                    } else {
+                        // File moved.
+                        console.log(`File ${file.id} Moved to new folder ${newFolderId}`);
+
+                    }
+                });
+            }
+        });
+    } catch (err) {
+        console.log("Error in moving files : ", err);
+    } finally {
+        //Do nothing
+    }
+
+}
+//////////////////////////////////////////////////////////////////API DOCS////////////////////////////////////
 
 
 
