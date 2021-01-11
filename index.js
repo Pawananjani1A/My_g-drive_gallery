@@ -78,7 +78,7 @@ async function getList(drive, pageToken, folderId, flag) {
         if (err) return console.log('The API returned an error: ' + err);
         const files = res.data.files;
         if (files.length) {
-            console.log('Files:');
+            // console.log('Files:');
             processList(files, flag);
             if (res.data.nextPageToken) {
                 getList(drive, res.data.nextPageToken, folderId, flag);
@@ -94,7 +94,7 @@ async function getList(drive, pageToken, folderId, flag) {
 }
 
 function processList(files, flag) {
-    console.log('Processing....');
+    // console.log('Processing....');
     let mySet = new Set();
     files.forEach(file => {
         mySet.add(file);
@@ -102,7 +102,7 @@ function processList(files, flag) {
         // console.log(file);
     });
     // console.log("Should Be empty : ",storage);
-    console.log(flag);
+    // console.log(flag);
     if (flag == "MI") MyImages = Array.from(mySet);
     else if (flag == "AI") ArchivedImages = Array.from(mySet);
     else if (flag == "HI") HiddenImages = Array.from(mySet);
@@ -137,7 +137,7 @@ function moveFileToNewFolder(fileId, newFolderId, auth) {
                         console.log(`Couldn't Move file ${file.id} to the new folder : `, err);
                     } else {
                         // File moved.
-                        console.log(`File ${file.id} Moved to new folder ${newFolderId}`);
+                        // console.log(`File ${file.id} Moved to new folder ${newFolderId}`);
 
                     }
                 });
@@ -290,7 +290,7 @@ app.get('/google/callback', function(req, res) {
                 console.log("Error authenticating");
                 console.log(err);
             } else {
-                console.log("Successfully authenticated");
+                // console.log("Successfully authenticated");
                 // console.log(tokens)
                 TOKEN = tokens;
                 oAuth2Client.setCredentials(tokens);
@@ -432,7 +432,7 @@ app.get('/hidden', (req, res) => {
             if (HiddenImages) {
 
                 res.render('hidden', { files: HiddenImages, success: true });
-                console.log(HiddenImages);
+                // console.log(HiddenImages);
             } else res.render('hidden', { files: HiddenImages, success: false });
         } else {
             res.redirect('/');
@@ -451,7 +451,7 @@ app.get('/deleted', (req, res) => {
             if (DeletedImages) {
 
                 res.render('deleted', { files: DeletedImages, success: true });
-                console.log(DeletedImages);
+                // console.log(DeletedImages);
             } else res.render('deleted', { files: DeletedImages, success: false });
         } else {
             res.redirect('/');
