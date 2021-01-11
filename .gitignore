@@ -23,5 +23,4 @@ config/
 
 /credentials.*
 /credentials2.*
-/credentials3_NITP.*
-/token.*
+
