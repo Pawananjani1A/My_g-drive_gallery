@@ -403,3 +403,123 @@ app.post('/upload', (req, res) => {
     } else { res.redirect('/'); }
 
 });
+
+
+app.get('/archived', (req, res) => {
+
+    if (authed) {
+        if (TOKEN) {
+            oAuth2Client.setCredentials(TOKEN);
+            listFiles(oAuth2Client, archived, flag = "AI");
+            if (ArchivedImages) {
+
+                res.render('archived', { files: ArchivedImages, success: true });
+                console.log(ArchivedImages);
+            } else res.render('archived', { files: ArchivedImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
+app.get('/hidden', (req, res) => {
+
+    if (authed) {
+        if (TOKEN) {
+            oAuth2Client.setCredentials(TOKEN);
+            listFiles(oAuth2Client, bin, flag = "HI");
+            if (HiddenImages) {
+
+                res.render('hidden', { files: HiddenImages, success: true });
+                console.log(HiddenImages);
+            } else res.render('hidden', { files: HiddenImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
+
+app.get('/deleted', (req, res) => {
+
+    if (authed) {
+        if (TOKEN) {
+            oAuth2Client.setCredentials(TOKEN);
+            listFiles(oAuth2Client, bin, flag = "DI");
+            if (DeletedImages) {
+
+                res.render('deleted', { files: DeletedImages, success: true });
+                console.log(DeletedImages);
+            } else res.render('deleted', { files: DeletedImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
+
+
+
+app.post('/file/archive/:id', (req, res) => {
+
+    if (authed) {
+        if (TOKEN) {
+            var fileId = req.params.id;
+            oAuth2Client.setCredentials(TOKEN);
+            moveFileToNewFolder(fileId, archived, oAuth2Client);
+            listFiles(oAuth2Client, archived, flag = "AI");
+            if (ArchivedImages) {
+
+                res.render('archived', { files: ArchivedImages, success: true });
+                // console.log(ArchivedImages);
+            } else res.render('archived', { files: ArchivedImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
+
+app.post('/file/hide/:id', (req, res) => {
+    if (authed) {
+        if (TOKEN) {
+            var fileId = req.params.id;
+            oAuth2Client.setCredentials(TOKEN);
+            moveFileToNewFolder(fileId, hidden, oAuth2Client);
+            listFiles(oAuth2Client, hidden, flag = "HI");
+            if (HiddenImages) {
+
+                res.render('hidden', { files: HiddenImages, success: true });
+                // console.log(HiddenImages);
+            } else res.render('hidden', { files: HiddenImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
+
+app.post('/file/delete/:id', (req, res) => {
+    if (authed) {
+        if (TOKEN) {
+            var fileId = req.params.id;
+            oAuth2Client.setCredentials(TOKEN);
+            moveFileToNewFolder(fileId, bin, oAuth2Client);
+            listFiles(oAuth2Client, bin, flag = "DI");
+            if (DeletedImages) {
+
+                res.render('deleted', { files: DeletedImages, success: true });
+                // console.log(DeletedImages);
+            } else res.render('deleted', { files: DeletedImages, success: false });
+        } else {
+            res.redirect('/');
+        }
+    } else {
+        res.redirect('/');
+    }
+});
