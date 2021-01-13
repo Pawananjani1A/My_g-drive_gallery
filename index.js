@@ -150,6 +150,42 @@ function moveFileToNewFolder(fileId, newFolderId, auth) {
     }
 
 }
+
+
+
+function uploadAfileToSomeFolder(req, folderId, auth) {
+    const drive = google.drive({ version: "v3", auth: auth });
+    const fileMetadata = {
+        'name': req.file.filename,
+        'parents': [folderId],
+        'appProperties': {
+            'hidden': false,
+            'archived': false,
+            'bin': false,
+            'myImages': true,
+            'origin': email
+        }
+    };
+    const media = {
+        mimeType: req.file.mimetype,
+        body: fs.createReadStream(req.file.path),
+    };
+    drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: "id",
+        },
+        (err, file) => {
+            if (err) {
+                // Handle error
+                console.error(err);
+            } else {
+                fs.unlinkSync(req.file.path);
+                console.log("Successfully uploaded : ", file);
+
+            }
+        });
+}
 //////////////////////////////////////////////////////////////////API DOCS////////////////////////////////////
 
 
@@ -173,9 +209,9 @@ app.use(session({
 // app.use(passport.session());
 
 var Storage = multer.diskStorage({
-    destination: function(req, file, callback) {
-        callback(null, "./uploadedImages");
-    },
+    // destination: function(req, file, callback) {
+    //     callback(null, "./uploadedImages");
+    // },
     filename: function(req, file, callback) {
         callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
     },
@@ -352,55 +388,32 @@ app.post('/fileList', (req, res) => {
 app.post('/upload', (req, res) => {
     if (authed) {
 
-        // console.log(req.user);
-        upload(req, res, function(err) {
-            if (err) {
-                console.log(err);
-                res.redirect('/error');
-            } else {
-                // console.log("File Path : ",req.file.path);
-                const ftype = req.file.mimetype;
-                if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
-                    const drive = google.drive({ version: "v3", auth: oAuth2Client });
-                    const fileMetadata = {
-                        'name': req.file.filename,
-                        'parents': ['1hyyibn8SOArYxLNcEn-8tsA8quABrd12'],
-                        'appProperties': {
-                            'hidden': false,
-                            'archived': false,
-                            'bin': false,
-                            'myImages': true,
-                            'origin': email
-                        }
-                    };
-                    const media = {
-                        mimeType: req.file.mimetype,
-                        body: fs.createReadStream(req.file.path),
-                    };
-                    drive.files.create({
-                            resource: fileMetadata,
-                            media: media,
-                            fields: "id",
-                        },
-                        (err, file) => {
-                            if (err) {
-                                // Handle error
-                                console.error(err);
-                            } else {
-                                fs.unlinkSync(req.file.path)
-                                    // console.log(req.user);
-                                res.render("upload", { name: name, pic: pic, success: true })
-                            }
-                        });
+        if (TOKEN) {
+            upload(req, res, function(err) {
+                if (err) {
+                    console.log("Multer caused some error", err);
+                    res.redirect('/error');
                 } else {
-                    console.log("User Didn't select an image file");
-                    res.redirect("/error");
+                    // console.log("File Path : ",req.file.path);
+                    const ftype = req.file.mimetype;
+                    if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
+                        oAuth2Client.setCredentials(TOKEN);
+                        uploadAfileToSomeFolder(req, My_Images, oAuth2Client);
+                        res.render("upload", { name: name, pic: pic, success: true });
+
+
+                    } else {
+                        console.log("User Didn't select an image file");
+                        res.redirect("/error");
+                    }
                 }
-            }
 
 
-        });
-    } else { res.redirect('/'); }
+            });
+        }
+    }
+    // console.log(req.user);
+    else { res.redirect('/'); }
 
 });
 
@@ -544,7 +557,7 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 app.listen(
     PORT,
     console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`)
