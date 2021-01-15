@@ -41,7 +41,7 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapi
 function authorize(credentials, callback) {
     var client_secret = credentials.web.client_secret;
     var client_id = credentials.web.client_id;
-    var redirect_uris = credentials.web.redirect_uris[2];
+    var redirect_uris = credentials.web.redirect_uris[0];
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 
     // Check if we have previously stored a token.
@@ -211,9 +211,9 @@ app.use(session({
 // app.use(passport.session());
 
 var Storage = multer.diskStorage({
-    destination: function(req, file, callback) {
-        callback(null, "./uploadedImages");
-    },
+    // destination: function(req, file, callback) {
+    //     callback(null, "./uploadedImages");
+    // },
     filename: function(req, file, callback) {
         callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
     },
