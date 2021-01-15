@@ -1,34 +1,33 @@
 <%- include('partials/header') %>
 
-<a class="item active" href="/upload">
+    <a class="item active" href="/upload">
     Upload
 </a>
-<a class="item" href="/fileList">
+    <a class="item" href="/fileList">
     Photos
 </a>
-<a class="item" href="/archived">
+    <a class="item" href="/archived">
     Archived Images
 </a>
 
-<a class="item" href="/hidden">
+    <a class="item" href="/hidden">
     Hidden Images
 </a>
 
-<a class="item" href="/deleted">
+    <a class="item" href="/deleted">
     Deleted Images
 </a>
-<div class="right menu">
-    <div class="item">
-        <a href="/logout" class="large ui google plus button">
-            <i class="google plus icon"></i>
-            Signout
-        </a>
+    <div class="right menu">
+        <div class="item">
+            <a href="/logout" class="large ui google plus button">
+                <i class="google plus icon"></i> Signout
+            </a>
+        </div>
     </div>
-</div>
-</div>
+    </div>
 
     <div class="container upload">
-      
+
         <div class="row">
             <!-- GOOGLE INFORMATION -->
             <div class="col-sm-6">
@@ -36,36 +35,36 @@
                     <h3 class="text-danger">
                         <span class="fa fa-google-plus"></span> Google
                     </h3>
-    
+
                     <p>
-                        <strong>name</strong>: <%= name %>
+                        <strong>name</strong>:
+                        <%= name %>
                             <br />
                             <strong>pic:</strong>:
                             <img src="<%=pic%>" width="200" height="200" alt="" />
                     </p>
                 </div>
             </div>
-    
+
             <div class="col-sm-6">
                 <div class="well">
                     <h3 class="text-danger">
-                        <span class="fa fa-google-plus"></span> Upload File to Google
-                        Drive
+                        <span class="fa fa-google-plus"></span> Upload File to Google Drive
                     </h3>
-    
+
                     <% if (success) { %>
                         <div class="alert alert-success alert-dismissible">
                             <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
-                            <strong>Success!</strong> Your Image File is Uploaded.
+                            <strong>Success!</strong> Your Image Files are Uploaded.
                         </div>
                         <%}%>
                             <form action="/upload" method="POST" enctype="multipart/form-data">
                                 <div class="form-group">
-                                    <input type="file" class="form-control" name="file" required id="" />
+                                    <input type="file" class="form-control" name="files" required id="files" multiple/>
                                 </div>
                                 <div class="form-group">
                                     <button class="btn btn-block btn-danger">
-                                        Upload File
+                                        Upload File/s
                                     </button>
                                 </div>
                             </form>
@@ -81,7 +80,7 @@
             </div>
         </div>
     </div>
-    
+
 
 
     <%- include('partials/footer') %>

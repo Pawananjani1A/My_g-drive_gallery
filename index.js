@@ -14,6 +14,8 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const multer = require('multer');
 const async = require('async');
+const Sharp = require('sharp');
+const path = require('path');
 
 var name, pic, email;
 
@@ -39,7 +41,7 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapi
 function authorize(credentials, callback) {
     var client_secret = credentials.web.client_secret;
     var client_id = credentials.web.client_id;
-    var redirect_uris = credentials.web.redirect_uris[0];
+    var redirect_uris = credentials.web.redirect_uris[2];
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 
     // Check if we have previously stored a token.
@@ -153,10 +155,10 @@ function moveFileToNewFolder(fileId, newFolderId, auth) {
 
 
 
-function uploadAfileToSomeFolder(req, folderId, auth) {
+function uploadAfileToSomeFolder(fileName, filePath, folderId, auth) {
     const drive = google.drive({ version: "v3", auth: auth });
     const fileMetadata = {
-        'name': req.file.filename,
+        'name': fileName,
         'parents': [folderId],
         'appProperties': {
             'hidden': false,
@@ -167,8 +169,8 @@ function uploadAfileToSomeFolder(req, folderId, auth) {
         }
     };
     const media = {
-        mimeType: req.file.mimetype,
-        body: fs.createReadStream(req.file.path),
+        mimeType: "image/jpeg",
+        body: fs.createReadStream(filePath),
     };
     drive.files.create({
             resource: fileMetadata,
@@ -178,10 +180,10 @@ function uploadAfileToSomeFolder(req, folderId, auth) {
         (err, file) => {
             if (err) {
                 // Handle error
-                console.error(err);
+                console.error("Error in uploading to drive", err);
             } else {
-                fs.unlinkSync(req.file.path);
-                console.log("Successfully uploaded : ", file);
+                // fs.unlinkSync(filePath); //This has already been done in the upload.post route
+                // console.log("Successfully uploaded : ", file);
 
             }
         });
@@ -209,9 +211,9 @@ app.use(session({
 // app.use(passport.session());
 
 var Storage = multer.diskStorage({
-    // destination: function(req, file, callback) {
-    //     callback(null, "./uploadedImages");
-    // },
+    destination: function(req, file, callback) {
+        callback(null, "./uploadedImages");
+    },
     filename: function(req, file, callback) {
         callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
     },
@@ -225,7 +227,30 @@ var archived = '1sWgt6hb0sdwM9Ugpjre3YauYLpOq2m2w';
 
 var upload = multer({
     storage: Storage,
-}).single("file"); //Field name and max count
+    limits: {
+        fileSize: 100000000
+    },
+    fileFilter: function(req, file, cb) {
+        checkFileType(file, cb);
+    }
+}).array("files", 51); //Field name and max count
+
+// Check File Type
+function checkFileType(file, cb) {
+    // Allowed ext
+    // console.log(file);
+    const filetypes = /jpeg|jpg|png|gif/;
+    // Check ext
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    // Check mime
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb('Error: Images Only!');
+    }
+}
 
 // use static serialize and deserialize of model for passport session support
 // passport.serializeUser(function (user, done) {
@@ -289,7 +314,7 @@ app.get("/", (req, res) => {
         });
         oauth2.userinfo.get(function(err, response) {
             if (err) {
-                console.log(err);
+                console.log("Error while retriving userinfo", err);
             } else {
                 // console.log(response.data);
                 name = response.data.name;
@@ -383,29 +408,62 @@ app.post('/fileList', (req, res) => {
     }
 });
 
-
+//Size comparision for SJF implementation while upload
+function compareSize(fileA, fileB) {
+    return fileA.size - fileB.size;
+}
 
 app.post('/upload', (req, res) => {
     if (authed) {
 
         if (TOKEN) {
-            upload(req, res, function(err) {
+            upload(req, res, async function(err) {
                 if (err) {
                     console.log("Multer caused some error", err);
                     res.redirect('/error');
                 } else {
                     // console.log("File Path : ",req.file.path);
-                    const ftype = req.file.mimetype;
-                    if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
-                        oAuth2Client.setCredentials(TOKEN);
-                        uploadAfileToSomeFolder(req, My_Images, oAuth2Client);
-                        res.render("upload", { name: name, pic: pic, success: true });
+                    oAuth2Client.setCredentials(TOKEN);
 
 
-                    } else {
-                        console.log("User Didn't select an image file");
-                        res.redirect("/error");
+                    const filesArray = req.files;
+                    // console.log(filesArray);
+                    filesArray.sort(compareSize);
+
+                    // for (var i = 0; i < filesArray.length; i++) {
+                    //     var fileName = filesArray[i].filename;
+
+                    //     await Sharp(filesArray[i].path)
+                    //         .resize(720, 480)
+                    //         .toFile("optimizedImages/" + fileName, function(err) {
+                    //             console.log("Error in optimizing image ", err);
+                    //         });
+
+                    // }
+
+                    for (var i = 0; i < filesArray.length; i++) {
+                        var fileName = filesArray[i].filename;
+
+                        var filePath = filesArray[i].path;
+                        await uploadAfileToSomeFolder(fileName, filePath, My_Images, oAuth2Client);
+                        4
+                        try {
+                            fs.unlinkSync(filesArray[i].path);
+                            //file removed
+                            // console.log("FileRemoved from uploadedImages Folder");
+                        } catch (err) {
+                            console.error("Error in removing file from uploadedImagesFolder", err);
+                        }
                     }
+                    res.render("upload", { name: name, pic: pic, success: true });
+                    // if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
+                    //     uploadAfileToSomeFolder(req, My_Images, oAuth2Client);
+                    //     res.render("upload", { name: name, pic: pic, success: true });
+                    // } else {
+                    //     console.log("User Didn't select an image file");
+                    //     res.redirect("/error");
+                    // }
+                    // res.redirect('/');
                 }
 
 
