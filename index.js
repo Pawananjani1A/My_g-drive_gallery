@@ -30,7 +30,7 @@ const TOKEN_PATH = 'token.json';
 
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[2];
+var redirect_uris = credentials.web.redirect_uris[0];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
