@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const methodOverride = require('method-override');
-const credentials = require('./credentials3_NITP.json');
+const credentials = require('./config/credentials3_NITP.json');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -16,6 +16,8 @@ const multer = require('multer');
 const async = require('async');
 const Sharp = require('sharp');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+
 
 var name, pic, email;
 
@@ -201,11 +203,26 @@ app.use(express.static("public"));
 
 app.use(urlencodedParser);
 
-app.use(session({
+//15 minutes
+var maxTime = 900000;
+app.use(cookieParser());
+var mySession = {
     secret: "Our little secret.",
     resave: false,
-    saveUninitialized: false
-}));
+    saveUninitialized: false,
+    cookie: {
+        expires: new Date(Date.now() + maxTime),
+        maxAge: maxTime
+    }
+}
+
+// Logging
+if (process.env.NODE_ENV === 'production') {
+    mySession.cookie.secure = true;
+}
+app.use(session(mySession));
+
+
 
 // app.use(passport.initialize());
 // app.use(passport.session());
@@ -253,32 +270,16 @@ function checkFileType(file, cb) {
 }
 
 // use static serialize and deserialize of model for passport session support
-// passport.serializeUser(function (user, done) {
+// passport.serializeUser(function(user, done) {
 //     done(null, user);
 // });
 
-// passport.deserializeUser(function (user, done) {
-//     done(null,user)
+// passport.deserializeUser(function(user, done) {
+//     done(null, user)
 // });
 
 
-// passport.use(new GoogleStrategy({
-//     clientID: process.env.CLIENT_ID,
-//     clientSecret: process.env.CLIENT_SECRET,
-//     callbackURL: "http://localhost:3000/auth/google/callback",
-//     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-// },
-//     function (accessToken, refreshToken, profile, cb) {
-//         // console.log(profile);
-//         // User.findOrCreate({ googleId: profile.id }, function (err, user) {
-//         //     return cb(err, user);
-//         // });
-//         let userAccessToken = accessToken;
-//         let userRefreshToken = refreshToken;
-//         userProfile = profile;
-//         return cb(null,userProfile);
-//     }
-// ));
+
 
 app.get("/", (req, res) => {
 
@@ -308,6 +309,7 @@ app.get("/", (req, res) => {
         res.render('signIn', { authUrl: authUrl });
 
     } else {
+
         var oauth2 = google.oauth2({
             auth: oAuth2Client,
             version: "v2",
@@ -317,6 +319,8 @@ app.get("/", (req, res) => {
                 console.log("Error while retriving userinfo", err);
             } else {
                 // console.log(response.data);
+                // console.log("oauth2 : ", oauth2);
+                // console.log("oAuth2Client : ", oAuth2Client);
                 name = response.data.name;
                 pic = response.data.picture;
                 email = response.data.email;
@@ -327,6 +331,7 @@ app.get("/", (req, res) => {
                 });
             }
         });
+
     }
 
 });
@@ -366,6 +371,24 @@ app.get('/google/callback', function(req, res) {
         res.redirect('/error');
     }
 });
+
+// passport.use(new GoogleStrategy({
+//         clientID: oAuth2Client._clientId,
+//         clientSecret: oAuth2Client._clientSecret,
+//         callbackURL: oAuth2Client.redirectUri,
+//         userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+//     },
+//     function(accessToken, refreshToken, profile, cb) {
+//         // console.log(profile);
+//         // User.findOrCreate({ googleId: profile.id }, function (err, user) {
+//         //     return cb(err, user);
+//         // });
+//         // let userAccessToken = accessToken;
+//         // let userRefreshToken = refreshToken;
+//         userProfile = profile;
+//         return cb(null, userProfile);
+//     }
+// ));
 
 app.get('/fileList', (req, res) => {
     if (authed) {
@@ -480,6 +503,7 @@ app.get('/archived', (req, res) => {
 
     if (authed) {
         if (TOKEN) {
+            // console.log(req);
             oAuth2Client.setCredentials(TOKEN);
             listFiles(oAuth2Client, archived, flag = "AI");
             if (ArchivedImages) {
@@ -596,6 +620,8 @@ app.post('/file/delete/:id', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
+    console.log("User :", req.session.user);
+    console.log("Session : ", req.session);
     authed = false;
     TOKEN = null;
     MyImages = [];
