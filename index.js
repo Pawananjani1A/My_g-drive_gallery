@@ -19,14 +19,15 @@ app.set('view engine', 'ejs');
 
 var authed = false;
 
-dotenv.config({ path: './config/config.env' });
-
+// dotenv.config({ path: './config/config.env' });
+dotenv.config();
+var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 // var client_secret = credentials.web.client_secret;
 // var client_id = credentials.web.client_id;
 // var redirect_uris = credentials.web.redirect_uris[2];
 var client_id = process.env.CLIENT_ID;
 var client_secret = process.env.CLIENT_SECRET;
-var redirect_uris = ["https://aqueous-thicket-67471.herokuapp.com/google/callback"];
+var redirect_uris = my_redirect_uris[0];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
@@ -400,7 +401,7 @@ app.get('/fileList', (req, res) => {
 
 
 app.get('/upload', (req, res) => {
-    if (req.isAuthenticated()) {
+    if (authed) {
         //  console.log(userProfile);
         res.render('upload', { name: name, pic: pic, success: false });
     } else {
