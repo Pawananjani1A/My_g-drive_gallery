@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const methodOverride = require('method-override');
-const credentials = require('./config/credentials3_NITP.json');
+// const credentials = require('./config/credentials3_NITP.json');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -43,6 +43,7 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapi
 
 //////////////////////////////////////////////API DOCS/////////////////////////////////////////////
 
+/*
 function authorize(credentials, callback) {
     var client_secret = credentials.web.client_secret;
     var client_id = credentials.web.client_id;
@@ -62,6 +63,7 @@ function authorize(credentials, callback) {
     });
 
 }
+*/
 
 var MyImages = [];
 var ArchivedImages = [];
