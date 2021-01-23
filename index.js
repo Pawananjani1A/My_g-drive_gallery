@@ -1,20 +1,12 @@
 const fs = require('fs');
-const readline = require('readline');
 const { google } = require('googleapis');
 const express = require('express');
-const ejs = require('ejs');
-const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
-const methodOverride = require('method-override');
 // const credentials = require('./config/credentials3_NITP.json');
 const session = require('express-session');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const multer = require('multer');
-const async = require('async');
-const Sharp = require('sharp');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 
@@ -28,14 +20,13 @@ app.set('view engine', 'ejs');
 var authed = false;
 
 dotenv.config({ path: './config/config.env' });
-const TOKEN_PATH = 'token.json';
 
 // var client_secret = credentials.web.client_secret;
 // var client_id = credentials.web.client_id;
 // var redirect_uris = credentials.web.redirect_uris[2];
 var client_id = process.env.CLIENT_ID;
 var client_secret = process.env.CLIENT_SECRET;
-var redirect_uris = process.env.REDIRECT_URI;
+var redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
@@ -93,7 +84,7 @@ async function getList(drive, pageToken, folderId, flag) {
                 getList(drive, res.data.nextPageToken, folderId, flag);
             }
 
-            files.map((file) => {
+            files.map(() => {
                 // console.log(`${file.name} (${file.id})`);
             });
         } else {
@@ -184,7 +175,7 @@ function uploadAfileToSomeFolder(fileName, filePath, folderId, auth) {
             media: media,
             fields: "id",
         },
-        (err, file) => {
+        (err) => {
             if (err) {
                 // Handle error
                 console.error("Error in uploading to drive", err);
@@ -242,7 +233,6 @@ var Storage = multer.diskStorage({
 });
 
 var My_Images = '1hyyibn8SOArYxLNcEn-8tsA8quABrd12';
-var Shared_Images = '1S3pH8WuQPW3tj0-mbqV3XiggukrhnmfN';
 var bin = '1Iy4-KZOpJ5iBmFG1CSNJUJpEm0vXNC84';
 var hidden = '1Ag2aPQeWVrMgSMRCzt5fn6vaEvaK2qJ1';
 var archived = '1sWgt6hb0sdwM9Ugpjre3YauYLpOq2m2w';
