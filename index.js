@@ -26,8 +26,8 @@ dotenv.config({ path: './config/config.env' });
 // var redirect_uris = credentials.web.redirect_uris[2];
 var client_id = process.env.CLIENT_ID;
 var client_secret = process.env.CLIENT_SECRET;
-var redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[2]);
+var redirect_uris = ["https://aqueous-thicket-67471.herokuapp.com/google/callback"];
+const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
 
