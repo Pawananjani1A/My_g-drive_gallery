@@ -9,10 +9,9 @@ const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-// const redis = require('redis');
-// const redisStore = require('connect-redis')(session);
-// const client = redis.createClient();
-
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const localStrategy = require('passport-local');
 
 var name, pic, email;
 
@@ -219,14 +218,16 @@ var mySession = {
 
 // Logging
 if (process.env.NODE_ENV === 'production') {
-    mySession.cookie.secure = true;
+    // mySession.cookie.secure = true;
 }
-app.use(session(mySession));
+// app.use(session(mySession));
 
 
 
-// app.use(passport.initialize());
-// app.use(passport.session());
+app.use(passport.initialize());
+app.use(passport.session());
+
+
 
 var Storage = multer.diskStorage({
     // destination: function(req, file, callback) {
@@ -284,21 +285,6 @@ function checkFileType(file, cb) {
 app.get("/", (req, res) => {
 
     if (!authed) {
-        // fs.readFile('credentials.json', (err, content) => {
-        //     if (err) {
-        //         console.log('Error loading client secret file:', err);
-
-        //     }
-        //     else
-        //     {
-        //         oAuth2Client.setCredentials(token);
-        //     }
-        //     // Authorize a client with credentials, then call the Google Drive API.
-        //     authorize(JSON.parse(content), listFiles);
-        //     //authorize(JSON.parse(content), getFile);
-        //     // console.log(JSON.parse(content));
-        //     // authorize(JSON.parse(content), uploadFile);
-        // });
 
         const authUrl = oAuth2Client.generateAuthUrl({
             access_type: 'offline',
@@ -318,7 +304,7 @@ app.get("/", (req, res) => {
             if (err) {
                 console.log("Error while retriving userinfo", err);
             } else {
-                // console.log(response);
+                // console.log(response.data);
                 // console.log("oauth2 : ", oauth2);
                 // console.log("oAuth2Client : ", oAuth2Client);
                 // name = response.data.name;
@@ -343,11 +329,8 @@ app.get("/", (req, res) => {
 //      }));
 var TOKEN;
 app.get('/google/callback', function(req, res) {
-    // passport.authenticate('google', { failureRedirect: '/signIn' }),
-    // function (req, res) {
-    //     // Successful authentication, redirect secrets.
-    //     res.redirect('/upload');
-    console.log(req);
+
+    // console.log(req);
     const code = req.query.code;
     if (code) {
         // Get an access token based on our OAuth code
@@ -368,16 +351,16 @@ app.get('/google/callback', function(req, res) {
                     if (err) {
                         console.log("Error while retriving userinfo", err);
                     } else {
-                        // console.log(response);
+                        // console.log(response.data);
                         // console.log("oauth2 : ", oauth2);
                         // console.log("oAuth2Client : ", oAuth2Client);
                         name = response.data.name;
                         pic = response.data.picture;
                         email = response.data.email;
-                        // console.log(req);
-
+                        console.log(req.isAuthenticated());
                     }
                 });
+
                 authed = true;
                 res.redirect('/upload');
             }
@@ -390,23 +373,7 @@ app.get('/google/callback', function(req, res) {
     }
 });
 
-// passport.use(new GoogleStrategy({
-//         clientID: oAuth2Client._clientId,
-//         clientSecret: oAuth2Client._clientSecret,
-//         callbackURL: oAuth2Client.redirectUri,
-//         userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-//     },
-//     function(accessToken, refreshToken, profile, cb) {
-//         // console.log(profile);
-//         // User.findOrCreate({ googleId: profile.id }, function (err, user) {
-//         //     return cb(err, user);
-//         // });
-//         // let userAccessToken = accessToken;
-//         // let userRefreshToken = refreshToken;
-//         userProfile = profile;
-//         return cb(null, userProfile);
-//     }
-// ));
+
 
 app.get('/fileList', (req, res) => {
     if (authed) {
@@ -648,6 +615,10 @@ app.get('/logout', (req, res) => {
     DeletedImages = [];
     HiddenImages = [];
     res.redirect('/');
+    // req.session.destroy(function(error) {
+    //     if (error) console.log("Error in destroying session");
+    //     else console.log("Session Destroyed");
+    // });
 });
 
 app.get('/error', (req, res) => {
