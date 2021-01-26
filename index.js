@@ -9,6 +9,9 @@ const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+// const redis = require('redis');
+// const redisStore = require('connect-redis')(session);
+// const client = redis.createClient();
 
 
 var name, pic, email;
@@ -24,7 +27,7 @@ dotenv.config({ path: './config/config.env' });
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[2];
+var redirect_uris = credentials.web.redirect_uris[0];
 // var client_id = process.env.CLIENT_ID;
 // var client_secret = process.env.CLIENT_SECRET;
 // var redirect_uris = my_redirect_uris[0];
@@ -207,6 +210,7 @@ var mySession = {
     secret: "Our little secret.",
     resave: false,
     saveUninitialized: false,
+    // store: new redisStore({ host: 'localhost', port: 3000, client: client, ttl: 260 }),
     cookie: {
         expires: new Date(Date.now() + maxTime),
         maxAge: maxTime
@@ -275,7 +279,7 @@ function checkFileType(file, cb) {
 // });
 
 
-
+var user = null;
 
 app.get("/", (req, res) => {
 
@@ -314,12 +318,12 @@ app.get("/", (req, res) => {
             if (err) {
                 console.log("Error while retriving userinfo", err);
             } else {
-                // console.log(response.data);
+                // console.log(response);
                 // console.log("oauth2 : ", oauth2);
                 // console.log("oAuth2Client : ", oAuth2Client);
-                name = response.data.name;
-                pic = response.data.picture;
-                email = response.data.email;
+                // name = response.data.name;
+                // pic = response.data.picture;
+                // email = response.data.email;
                 res.render("upload", {
                     name: response.data.name,
                     pic: response.data.picture,
@@ -343,7 +347,7 @@ app.get('/google/callback', function(req, res) {
     // function (req, res) {
     //     // Successful authentication, redirect secrets.
     //     res.redirect('/upload');
-
+    console.log(req);
     const code = req.query.code;
     if (code) {
         // Get an access token based on our OAuth code
@@ -356,6 +360,24 @@ app.get('/google/callback', function(req, res) {
                 // console.log(tokens)
                 TOKEN = tokens;
                 oAuth2Client.setCredentials(tokens);
+                var oauth2 = google.oauth2({
+                    auth: oAuth2Client,
+                    version: "v2",
+                });
+                oauth2.userinfo.get(function(err, response) {
+                    if (err) {
+                        console.log("Error while retriving userinfo", err);
+                    } else {
+                        // console.log(response);
+                        // console.log("oauth2 : ", oauth2);
+                        // console.log("oAuth2Client : ", oAuth2Client);
+                        name = response.data.name;
+                        pic = response.data.picture;
+                        email = response.data.email;
+                        // console.log(req);
+
+                    }
+                });
                 authed = true;
                 res.redirect('/upload');
             }
@@ -616,8 +638,9 @@ app.post('/file/delete/:id', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    console.log("User :", req.session.user);
-    console.log("Session : ", req.session);
+    // console.log(req);
+    // console.log(user);
+    // console.log("Session : ", req.session);
     authed = false;
     TOKEN = null;
     MyImages = [];
