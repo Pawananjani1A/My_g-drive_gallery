@@ -26,7 +26,7 @@ dotenv.config({ path: './config/config.env' });
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[2];
+var redirect_uris = credentials.web.redirect_uris[0];
 // var client_id = process.env.CLIENT_ID;
 // var client_secret = process.env.CLIENT_SECRET;
 // var redirect_uris = my_redirect_uris[0];
@@ -224,8 +224,8 @@ if (process.env.NODE_ENV === 'production') {
 
 
 
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 
 
@@ -296,27 +296,27 @@ app.get("/", (req, res) => {
 
     } else {
 
-        var oauth2 = google.oauth2({
-            auth: oAuth2Client,
-            version: "v2",
-        });
-        oauth2.userinfo.get(function(err, response) {
-            if (err) {
-                console.log("Error while retriving userinfo", err);
-            } else {
-                // console.log(response.data);
-                // console.log("oauth2 : ", oauth2);
-                // console.log("oAuth2Client : ", oAuth2Client);
-                // name = response.data.name;
-                // pic = response.data.picture;
-                // email = response.data.email;
-                res.render("upload", {
-                    name: response.data.name,
-                    pic: response.data.picture,
-                    success: false
-                });
-            }
-        });
+        // var oauth2 = google.oauth2({
+        //     auth: oAuth2Client,
+        //     version: "v2",
+        // });
+        // oauth2.userinfo.get(function(err, response) {
+        //     if (err) {
+        //         console.log("Error while retriving userinfo", err);
+        //     } else {
+        //         // console.log(response.data);
+        //         // console.log("oauth2 : ", oauth2);
+        //         // console.log("oAuth2Client : ", oAuth2Client);
+        //         // name = response.data.name;
+        //         // pic = response.data.picture;
+        //         // email = response.data.email;
+        //         res.render("upload", {
+        //             name: response.data.name,
+        //             pic: response.data.picture,
+        //             success: false
+        //         });
+        //     }
+        // });
 
     }
 
@@ -357,6 +357,7 @@ app.get('/google/callback', function(req, res) {
                         name = response.data.name;
                         pic = response.data.picture;
                         email = response.data.email;
+
                         console.log(req.isAuthenticated());
                     }
                 });
@@ -605,9 +606,7 @@ app.post('/file/delete/:id', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    // console.log(req);
-    // console.log(user);
-    // console.log("Session : ", req.session);
+
     authed = false;
     TOKEN = null;
     MyImages = [];
@@ -615,10 +614,6 @@ app.get('/logout', (req, res) => {
     DeletedImages = [];
     HiddenImages = [];
     res.redirect('/');
-    // req.session.destroy(function(error) {
-    //     if (error) console.log("Error in destroying session");
-    //     else console.log("Session Destroyed");
-    // });
 });
 
 app.get('/error', (req, res) => {
