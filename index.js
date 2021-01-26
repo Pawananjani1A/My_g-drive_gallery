@@ -27,7 +27,7 @@ dotenv.config({ path: './config/config.env' });
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[0];
+var redirect_uris = credentials.web.redirect_uris[2];
 // var client_id = process.env.CLIENT_ID;
 // var client_secret = process.env.CLIENT_SECRET;
 // var redirect_uris = my_redirect_uris[0];
@@ -279,7 +279,7 @@ function checkFileType(file, cb) {
 // });
 
 
-var user = null;
+
 
 app.get("/", (req, res) => {
 
