@@ -35,11 +35,11 @@ const connectDB = async() => {
 
     } catch (err) {
         console.log("DB CONNECTION FAILED ", err);
-        // process.exit(1);
+        process.exit(1);
     }
 };
 
-// connectDB();
+connectDB();
 
 
 
@@ -52,7 +52,7 @@ var authed = false;
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[0];
+var redirect_uris = credentials.web.redirect_uris[2];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
