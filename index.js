@@ -24,7 +24,7 @@ app.set('view engine', 'ejs');
 
 const connectDB = async() => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI, {
+        const conn = await mongoose.connect(credentials.web.mongo_uri, {
             useNewUrlParser: true,
             useFindAndModify: false,
             useUnifiedTopology: true,
