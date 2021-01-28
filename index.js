@@ -12,24 +12,47 @@ const cookieParser = require('cookie-parser');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const localStrategy = require('passport-local');
+const mongoose = require('mongoose');
+const MongoStore = require('connect-mongo')(session);
+const User = require("./sessionDB/user");
 
-var name, pic, email;
 
+dotenv.config({ path: "./config/config.env" });
 const app = express();
 
 app.set('view engine', 'ejs');
 
+const connectDB = async() => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useFindAndModify: false,
+            useUnifiedTopology: true,
+            useCreateIndex: true
+        });
+
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    } catch (err) {
+        console.log("DB CONNECTION FAILED ", err);
+        // process.exit(1);
+    }
+};
+
+// connectDB();
+
+
+
+
+
 var authed = false;
 
-dotenv.config({ path: './config/config.env' });
+
 
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
 var client_secret = credentials.web.client_secret;
 var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[2];
-// var client_id = process.env.CLIENT_ID;
-// var client_secret = process.env.CLIENT_SECRET;
-// var redirect_uris = my_redirect_uris[0];
+var redirect_uris = credentials.web.redirect_uris[0];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
@@ -37,27 +60,15 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapi
 
 //////////////////////////////////////////////API DOCS/////////////////////////////////////////////
 
-/*
-function authorize(credentials, callback) {
-    var client_secret = credentials.web.client_secret;
-    var client_id = credentials.web.client_id;
-    var redirect_uris = credentials.web.redirect_uris[0];
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 
-    // Check if we have previously stored a token.
-    fs.readFile(TOKEN_PATH, (err, token) => {
-        if (err) {
-            console.log("Error Reading Token : ", err);
-            return false;
-        }
-        oAuth2Client.setCredentials(JSON.parse(token));
-        callback(oAuth2Client); //list files and upload file
-        //callback(oAuth2Client, '0B79LZPgLDaqESF9HV2V3YzYySkE');//get file
-        return true;
+function getAuthUrl() {
+    return oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: SCOPES,
     });
-
 }
-*/
+
+
 
 var MyImages = [];
 var ArchivedImages = [];
@@ -189,7 +200,40 @@ function uploadAfileToSomeFolder(fileName, filePath, folderId, auth) {
             }
         });
 }
-//////////////////////////////////////////////////////////////////API DOCS////////////////////////////////////
+
+
+function getUser(Client) {
+    var oauth2 = google.oauth2({
+        auth: Client,
+        version: "v2",
+    });
+
+    oauth2.userinfo.get(function(err, response) {
+        if (err) {
+            console.log("Error while retriving userinfo", err);
+            return -1;
+        } else {
+            // console.log(response.data); //id,name
+            return response.data;
+
+        }
+    });
+
+
+}
+
+function findUserInDB(currUser) {
+    if (mongoose.connection !== undefined) {
+        User.findOrCreate({ googleId: currUser.googleId, displayName: currUser.displayName }, function(err, user) {
+            if (err) return -1;
+            else return user;
+        });
+    } else {
+        return -1;
+    }
+}
+
+/////////////////////////////////////////////////////////////API DOCS////////////////////////////////////
 
 
 
@@ -202,30 +246,72 @@ app.use(express.static("public"));
 
 app.use(urlencodedParser);
 
-//15 minutes
-var maxTime = 900000;
+
 app.use(cookieParser());
-var mySession = {
-    secret: "Our little secret.",
-    resave: false,
-    saveUninitialized: false,
-    // store: new redisStore({ host: 'localhost', port: 3000, client: client, ttl: 260 }),
-    cookie: {
-        expires: new Date(Date.now() + maxTime),
-        maxAge: maxTime
-    }
-}
 
 // Logging
-if (process.env.NODE_ENV === 'production') {
-    // mySession.cookie.secure = true;
-}
-// app.use(session(mySession));
+// if (process.env.NODE_ENV === 'production') {
+//     mySession.cookie.secure = true;
+// }
+app.use(session({
+    secret: "Our little secret.",
+    resave: false,
+    saveUninitialized: true,
+    // cookie: {
+    //     expires: new Date(Date.now() + 900000),
+    //     maxAge: 900000
+    // },
+    store: mongoose.connection ? new MongoStore({ mongooseConnection: mongoose.connection }) : null
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+passport.use(User.createStrategy());
+/*,
+    async(accessToken, refreshToken, profile, done) => {
+        //    console.log(profile);
+
+        const newUser = {
+            googleId: profile.id,
+            displayName: profile.displayName,
+            firstName: profile.name.givenName,
+            lastName: profile.name.familyName,
+            image: profile.photos[0].value
+        };
+
+        try {
+            let user = await User.findOne({ googleId: profile.id });
+
+            // The user already has an account
+            if (user) {
+                done(null, user);
+            }
+            // New user
+            else {
+                user = await User.create(newUser);
+                done(null, user);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    }
+));
+*/
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+// Set global variable
+app.use(function(req, res, next) {
+    res.locals.currentUser = req.user;
+    next();
+});
 
 
 
-// app.use(passport.initialize());
-// app.use(passport.session());
 
 
 
@@ -270,64 +356,32 @@ function checkFileType(file, cb) {
     }
 }
 
-// use static serialize and deserialize of model for passport session support
-// passport.serializeUser(function(user, done) {
-//     done(null, user);
-// });
-
-// passport.deserializeUser(function(user, done) {
-//     done(null, user)
-// });
-
 
 
 
 app.get("/", (req, res) => {
 
-    if (!authed) {
-
-        const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'offline',
-            scope: SCOPES,
-        });
-
-        // console.log(authUrl);
-        res.render('signIn', { authUrl: authUrl });
-
+    if (req.isAuthenticated()) {
+        res.redirect("/upload");
     } else {
-
-        // var oauth2 = google.oauth2({
-        //     auth: oAuth2Client,
-        //     version: "v2",
-        // });
-        // oauth2.userinfo.get(function(err, response) {
-        //     if (err) {
-        //         console.log("Error while retriving userinfo", err);
-        //     } else {
-        //         // console.log(response.data);
-        //         // console.log("oauth2 : ", oauth2);
-        //         // console.log("oAuth2Client : ", oAuth2Client);
-        //         // name = response.data.name;
-        //         // pic = response.data.picture;
-        //         // email = response.data.email;
-        //         res.render("upload", {
-        //             name: response.data.name,
-        //             pic: response.data.picture,
-        //             success: false
-        //         });
-        //     }
-        // });
-
+        const authUrl = getAuthUrl();
+        res.render('signIn', { authUrl: authUrl });
     }
 
 });
 
-// app.get('/auth/google',
-//     passport.authenticate('google', { 
-//         scope: ['profile','email'],
+
+
+
+// app.get('/google',
+//     passport.authenticate('google', {
+//         scope: SCOPES,
 //         accessType: 'offline'
-//      }));
+//     }));
+
+
 var TOKEN;
+// passport.authenticate('google', { failureRedirect: '/error' }),
 app.get('/google/callback', function(req, res) {
 
     // console.log(req);
@@ -338,36 +392,48 @@ app.get('/google/callback', function(req, res) {
             if (err) {
                 console.log("Error authenticating");
                 console.log(err);
+                res.redirect('/error');
             } else {
                 // console.log("Successfully authenticated");
                 // console.log(tokens)
                 TOKEN = tokens;
                 oAuth2Client.setCredentials(tokens);
-                var oauth2 = google.oauth2({
-                    auth: oAuth2Client,
-                    version: "v2",
-                });
-                oauth2.userinfo.get(function(err, response) {
-                    if (err) {
-                        console.log("Error while retriving userinfo", err);
+
+                user = getUser(oAuth2Client);
+                if (user === -1) {
+                    console.log("Error Authenticating user");
+                    res.redirect("/error");
+                } else {
+                    const CurrUser = new User({
+                        googleId: user.id,
+                        displayName: user.name,
+                    });
+
+                    resultUser = findUserInDB(CurrUser);
+                    if (resultUser === -1) {
+                        console.log("Error finding or Creating user in DB");
+                        res.redirect("/error");
                     } else {
-                        // console.log(response.data);
-                        // console.log("oauth2 : ", oauth2);
-                        // console.log("oAuth2Client : ", oAuth2Client);
-                        name = response.data.name;
-                        pic = response.data.picture;
-                        email = response.data.email;
-
-                        console.log(req.isAuthenticated());
+                        req.login(resultUser, function(err) {
+                            if (err) {
+                                console.log("Error logging the user in", err);
+                                res.redirect("/error");
+                            } else {
+                                passport.authenticate("local")(req, res, function() {
+                                    console.log(req.user);
+                                    authed = true;
+                                    res.redirect("/upload");
+                                });
+                            }
+                        });
                     }
-                });
 
-                authed = true;
-                res.redirect('/upload');
+                }
+
             }
+
+
         });
-
-
     } else {
         console.log("Error retrieving code");
         res.redirect('/error');
@@ -377,6 +443,8 @@ app.get('/google/callback', function(req, res) {
 
 
 app.get('/fileList', (req, res) => {
+
+
     if (authed) {
         if (MyImages) {
             // console.log(MyImages);
@@ -391,9 +459,10 @@ app.get('/fileList', (req, res) => {
 
 
 app.get('/upload', (req, res) => {
+    console.log(req.isAuthenticated());
     if (authed) {
         //  console.log(userProfile);
-        res.render('upload', { name: name, pic: pic, success: false });
+        res.render('upload', { name: req.user.displayName });
     } else {
         res.redirect('/');
     }
@@ -465,14 +534,7 @@ app.post('/upload', (req, res) => {
                         }
                     }
                     res.render("upload", { name: name, pic: pic, success: true });
-                    // if (ftype == 'image/jpeg' || ftype == 'image/png' || ftype == 'image/gif') {
-                    //     uploadAfileToSomeFolder(req, My_Images, oAuth2Client);
-                    //     res.render("upload", { name: name, pic: pic, success: true });
-                    // } else {
-                    //     console.log("User Didn't select an image file");
-                    //     res.redirect("/error");
-                    // }
-                    // res.redirect('/');
+
                 }
 
 
@@ -613,6 +675,7 @@ app.get('/logout', (req, res) => {
     ArchivedImages = [];
     DeletedImages = [];
     HiddenImages = [];
+    req.logout();
     res.redirect('/');
 });
 
@@ -627,7 +690,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(
-    PORT,
-    console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`)
-);
+app.listen(PORT, () => {
+    console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT} at ${new Date().toISOString()}`);
+});
