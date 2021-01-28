@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const credentials = require('./credentials3_NITP.json');
+const credentials2 = require('./credentials4_NITP.json');
 const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
@@ -50,9 +51,9 @@ var authed = false;
 
 
 // var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
-var client_secret = credentials.web.client_secret;
-var client_id = credentials.web.client_id;
-var redirect_uris = credentials.web.redirect_uris[2];
+var client_secret = credentials2.web.client_secret;
+var client_id = credentials2.web.client_id;
+var redirect_uris = credentials2.web.redirect_uris[2];
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile";
 
@@ -384,7 +385,7 @@ var TOKEN;
 // passport.authenticate('google', { failureRedirect: '/error' }),
 app.get('/google/callback', function(req, res) {
 
-    // console.log(req);
+    // console.log(req.query.code);
     const code = req.query.code;
     if (code) {
         // Get an access token based on our OAuth code
@@ -394,7 +395,7 @@ app.get('/google/callback', function(req, res) {
                 console.log(err);
                 res.redirect('/error');
             } else {
-                // console.log("Successfully authenticated");
+                console.log("Successfully authenticated");
                 // console.log(tokens)
                 TOKEN = tokens;
                 oAuth2Client.setCredentials(tokens);
