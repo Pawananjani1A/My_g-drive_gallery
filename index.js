@@ -50,7 +50,7 @@ var authed = false;
 
 
 
-// var my_redirect_uris = ["http://localhost:3000/google/callback", "http://localhost:5000/google/callback", "https://aqueous-thicket-67471.herokuapp.com/google/callback"];
+
 var client_secret = credentials2.web.client_secret;
 var client_id = credentials2.web.client_id;
 var redirect_uris = credentials2.web.redirect_uris[2];
