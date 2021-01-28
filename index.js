@@ -383,13 +383,13 @@ app.get("/", (req, res) => {
 
 var TOKEN;
 // passport.authenticate('google', { failureRedirect: '/error' }),
-app.get('/google/callback', function(req, res) {
+app.get('/google/callback', async function(req, res) {
 
     // console.log(req.query.code);
     const code = req.query.code;
     if (code) {
         // Get an access token based on our OAuth code
-        oAuth2Client.getToken(code, function(err, tokens) {
+        await oAuth2Client.getToken(code, function(err, tokens) {
             if (err) {
                 console.log("Error authenticating");
                 console.log(err);
