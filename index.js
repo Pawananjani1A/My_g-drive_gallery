@@ -11,43 +11,15 @@ const multer = require('multer');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const localStrategy = require('passport-local');
-const mongoose = require('mongoose');
-const MongoStore = require('connect-mongo')(session);
-const User = require("./sessionDB/user");
 
+require("./passport");
 
 dotenv.config({ path: "./config/config.env" });
 const app = express();
 
+const TOKEN_PATH = 'token_NITP.json';
+
 app.set('view engine', 'ejs');
-
-const connectDB = async() => {
-    try {
-        const conn = await mongoose.connect(credentials.web.mongo_uri, {
-            useNewUrlParser: true,
-            useFindAndModify: false,
-            useUnifiedTopology: true,
-            useCreateIndex: true
-        });
-
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
-
-    } catch (err) {
-        console.log("DB CONNECTION FAILED ", err);
-        process.exit(1);
-    }
-};
-
-connectDB();
-
-
-
-
-
-var authed = false;
-
 
 
 
@@ -178,7 +150,7 @@ function uploadAfileToSomeFolder(fileName, filePath, folderId, auth) {
             'archived': false,
             'bin': false,
             'myImages': true,
-            'origin': email
+            'origin': auth
         }
     };
     const media = {
@@ -223,15 +195,18 @@ function getUser(Client) {
 
 }
 
-function findUserInDB(currUser) {
-    if (mongoose.connection !== undefined) {
-        User.findOrCreate({ googleId: currUser.googleId, displayName: currUser.displayName }, function(err, user) {
-            if (err) return -1;
-            else return user;
-        });
-    } else {
-        return -1;
-    }
+function getToken() {
+    fs.readFile(TOKEN_PATH, (err, token) => {
+        if (err) return -1;
+
+        // callback(oAuth2Client);//list files and upload file
+        // //callback(oAuth2Client, '0B79LZPgLDaqESF9HV2V3YzYySkE');//get file
+        // console.log(JSON.parse(token));
+        oAuth2Client.setCredentials(JSON.parse(token));
+        return 1;
+
+    });
+
 }
 
 /////////////////////////////////////////////////////////////API DOCS////////////////////////////////////
@@ -255,55 +230,33 @@ app.use(cookieParser());
 //     mySession.cookie.secure = true;
 // }
 app.use(session({
-    secret: "Our little secret.",
+    secret: "how_can You Change the COOKKEE",
     resave: false,
     saveUninitialized: true,
     // cookie: {
     //     expires: new Date(Date.now() + 900000),
     //     maxAge: 900000
     // },
-    store: mongoose.connection ? new MongoStore({ mongooseConnection: mongoose.connection }) : null
+
 }));
+
+// Auth middleware that checks if the user is logged in
+const isLoggedIn = (req, res, next) => {
+    if (req.user) {
+        next();
+    } else {
+        res.sendStatus(401);
+    }
+}
 
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-passport.use(User.createStrategy());
-/*,
-    async(accessToken, refreshToken, profile, done) => {
-        //    console.log(profile);
 
-        const newUser = {
-            googleId: profile.id,
-            displayName: profile.displayName,
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName,
-            image: profile.photos[0].value
-        };
 
-        try {
-            let user = await User.findOne({ googleId: profile.id });
 
-            // The user already has an account
-            if (user) {
-                done(null, user);
-            }
-            // New user
-            else {
-                user = await User.create(newUser);
-                done(null, user);
-            }
-        } catch (err) {
-            console.log(err);
-        }
-    }
-));
-*/
-
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
 
 // Set global variable
 app.use(function(req, res, next) {
@@ -362,11 +315,11 @@ function checkFileType(file, cb) {
 
 app.get("/", (req, res) => {
 
-    if (req.isAuthenticated()) {
+    if (req.user) {
         res.redirect("/upload");
     } else {
         const authUrl = getAuthUrl();
-        res.render('signIn', { authUrl: authUrl });
+        res.render('signIn');
     }
 
 });
@@ -374,71 +327,19 @@ app.get("/", (req, res) => {
 
 
 
-// app.get('/google',
-//     passport.authenticate('google', {
-//         scope: SCOPES,
-//         accessType: 'offline'
-//     }));
+app.get('/google',
+    passport.authenticate('google', {
+        scope: SCOPES,
+        accessType: 'offline'
+    }));
 
 
-var TOKEN;
-// passport.authenticate('google', { failureRedirect: '/error' }),
-app.get('/google/callback', async function(req, res) {
 
-    // console.log(req.query.code);
-    const code = req.query.code;
-    if (code) {
-        // Get an access token based on our OAuth code
-        await oAuth2Client.getToken(code, function(err, tokens) {
-            if (err) {
-                console.log("Error authenticating");
-                console.log(err);
-                res.redirect('/error');
-            } else {
-                console.log("Successfully authenticated");
-                // console.log(tokens)
-                TOKEN = tokens;
-                oAuth2Client.setCredentials(tokens);
-
-                user = getUser(oAuth2Client);
-                if (user === -1) {
-                    console.log("Error Authenticating user");
-                    res.redirect("/error");
-                } else {
-                    const CurrUser = new User({
-                        googleId: user.id,
-                        displayName: user.name,
-                    });
-
-                    resultUser = findUserInDB(CurrUser);
-                    if (resultUser === -1) {
-                        console.log("Error finding or Creating user in DB");
-                        res.redirect("/error");
-                    } else {
-                        req.login(resultUser, function(err) {
-                            if (err) {
-                                console.log("Error logging the user in", err);
-                                res.redirect("/error");
-                            } else {
-                                passport.authenticate("local")(req, res, function() {
-                                    console.log(req.user);
-                                    authed = true;
-                                    res.redirect("/upload");
-                                });
-                            }
-                        });
-                    }
-
-                }
-
-            }
+// 
+app.get('/google/callback', passport.authenticate('google', { failureRedirect: '/error' }), (req, res) => {
 
 
-        });
-    } else {
-        console.log("Error retrieving code");
-        res.redirect('/error');
-    }
+    res.redirect("/upload");
 });
 
 
@@ -446,11 +347,11 @@ app.get('/google/callback', async function(req, res) {
 app.get('/fileList', (req, res) => {
 
 
-    if (authed) {
+    if (req.isAuthenticated()) {
         if (MyImages) {
             // console.log(MyImages);
-            res.render('fileList', { name: name, pic: pic, files: MyImages, success: true })
-        } else res.render('fileList', { name: name, pic: pic, files: MyImages, success: false })
+            res.render('fileList', { name: req.user.displayName, pic: req.user.photos[0], files: MyImages, success: true })
+        } else res.render('fileList', { name: req.user.displayName, pic: req.user.photos[0], files: MyImages, success: false })
     } else {
         res.redirect('/');
     }
@@ -461,22 +362,22 @@ app.get('/fileList', (req, res) => {
 
 app.get('/upload', (req, res) => {
     console.log(req.isAuthenticated());
-    if (authed) {
+    if (req.user) {
         //  console.log(userProfile);
-        res.render('upload', { name: req.user.displayName });
+        res.render('upload', { name: req.user.displayName, pic: req.user.photos[0], success: true });
     } else {
-        res.redirect('/');
+        res.redirect('/error');
     }
 });
 
 
 
 app.post('/fileList', (req, res) => {
+    var TOKEN = getToken();
+    if (req.isAuthenticated()) {
+        if (TOKEN !== -1 || !TOKEN) {
 
-    if (authed) {
-        if (TOKEN) {
-
-            oAuth2Client.setCredentials(TOKEN);
+            // oAuth2Client.setCredentials(TOKEN);
 
             listFiles(oAuth2Client, My_Images, flag = "MI");
             // console.log(MyImages);
@@ -493,32 +394,24 @@ function compareSize(fileA, fileB) {
 }
 
 app.post('/upload', (req, res) => {
-    if (authed) {
-
-        if (TOKEN) {
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        console.log(TOKEN);
+        if (TOKEN !== -1 || !TOKEN) {
             upload(req, res, async function(err) {
                 if (err) {
                     console.log("Multer caused some error", err);
                     res.redirect('/error');
                 } else {
                     // console.log("File Path : ",req.file.path);
-                    oAuth2Client.setCredentials(TOKEN);
+
 
 
                     const filesArray = req.files;
                     // console.log(filesArray);
                     filesArray.sort(compareSize);
 
-                    // for (var i = 0; i < filesArray.length; i++) {
-                    //     var fileName = filesArray[i].filename;
 
-                    //     await Sharp(filesArray[i].path)
-                    //         .resize(720, 480)
-                    //         .toFile("optimizedImages/" + fileName, function(err) {
-                    //             console.log("Error in optimizing image ", err);
-                    //         });
-
-                    // }
 
                     for (var i = 0; i < filesArray.length; i++) {
                         var fileName = filesArray[i].filename;
@@ -534,7 +427,7 @@ app.post('/upload', (req, res) => {
                             console.error("Error in removing file from uploadedImagesFolder", err);
                         }
                     }
-                    res.render("upload", { name: name, pic: pic, success: true });
+                    res.render("upload", { name: req.user.displayName, pic: req.user.photos[0], success: true });
 
                 }
 
@@ -550,10 +443,11 @@ app.post('/upload', (req, res) => {
 
 app.get('/archived', (req, res) => {
 
-    if (authed) {
-        if (TOKEN) {
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
             // console.log(req);
-            oAuth2Client.setCredentials(TOKEN);
+
             listFiles(oAuth2Client, archived, flag = "AI");
             if (ArchivedImages) {
 
@@ -569,9 +463,10 @@ app.get('/archived', (req, res) => {
 });
 app.get('/hidden', (req, res) => {
 
-    if (authed) {
-        if (TOKEN) {
-            oAuth2Client.setCredentials(TOKEN);
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
+
             listFiles(oAuth2Client, bin, flag = "HI");
             if (HiddenImages) {
 
@@ -588,9 +483,10 @@ app.get('/hidden', (req, res) => {
 
 app.get('/deleted', (req, res) => {
 
-    if (authed) {
-        if (TOKEN) {
-            oAuth2Client.setCredentials(TOKEN);
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
+
             listFiles(oAuth2Client, bin, flag = "DI");
             if (DeletedImages) {
 
@@ -609,10 +505,11 @@ app.get('/deleted', (req, res) => {
 
 app.post('/file/archive/:id', (req, res) => {
 
-    if (authed) {
-        if (TOKEN) {
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
             var fileId = req.params.id;
-            oAuth2Client.setCredentials(TOKEN);
+
             moveFileToNewFolder(fileId, archived, oAuth2Client);
             listFiles(oAuth2Client, archived, flag = "AI");
             if (ArchivedImages) {
@@ -629,10 +526,11 @@ app.post('/file/archive/:id', (req, res) => {
 });
 
 app.post('/file/hide/:id', (req, res) => {
-    if (authed) {
-        if (TOKEN) {
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
             var fileId = req.params.id;
-            oAuth2Client.setCredentials(TOKEN);
+
             moveFileToNewFolder(fileId, hidden, oAuth2Client);
             listFiles(oAuth2Client, hidden, flag = "HI");
             if (HiddenImages) {
@@ -649,10 +547,11 @@ app.post('/file/hide/:id', (req, res) => {
 });
 
 app.post('/file/delete/:id', (req, res) => {
-    if (authed) {
-        if (TOKEN) {
+    if (req.isAuthenticated()) {
+        var TOKEN = getToken();
+        if (TOKEN !== -1 || !TOKEN) {
             var fileId = req.params.id;
-            oAuth2Client.setCredentials(TOKEN);
+
             moveFileToNewFolder(fileId, bin, oAuth2Client);
             listFiles(oAuth2Client, bin, flag = "DI");
             if (DeletedImages) {
@@ -669,13 +568,13 @@ app.post('/file/delete/:id', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-
-    authed = false;
+    // console.log(req.session);
     TOKEN = null;
     MyImages = [];
     ArchivedImages = [];
     DeletedImages = [];
     HiddenImages = [];
+    req.session = null;
     req.logout();
     res.redirect('/');
 });
