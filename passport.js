@@ -26,7 +26,7 @@ passport.deserializeUser(function(user, done) {
 passport.use(new GoogleStrategy({
     clientID: credentials2.web.client_id,
     clientSecret: credentials2.web.client_secret,
-    callbackURL: credentials2.web.redirect_uris[0],
+    callbackURL: credentials2.web.redirect_uris[2],
     accessType: 'offline',
   },
   function(accessToken, refreshToken, profile, done) {
